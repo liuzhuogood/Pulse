@@ -88,7 +88,17 @@ jobs:
       # Proves the thing that actually ships can be assembled, not just that
       # the sources compile.
       - name: Assemble Pulse.app
-        run: ./Scripts/bundle.sh
+        run: ./Scripts/bundle.sh --zip
+
+      - name: Upload app bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: Pulse-${{ github.sha }}
+          path: |
+            build.noindex/Pulse.app
+            build.noindex/Pulse-*.zip
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Check the bundle
         run: |
