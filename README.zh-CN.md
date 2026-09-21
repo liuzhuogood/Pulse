@@ -2,6 +2,8 @@
   <img src="AppIcon/pulse-icon-1024.png" width="112" alt="Pulse">
 </p>
 
+> 本仓库是基于原始项目 [qunqin24/Pulse](https://github.com/qunqin24/Pulse) 的公开派生版本；原项目的许可证、设计来源和版权说明均保留。
+
 <h1 align="center">Pulse</h1>
 
 <p align="center">
