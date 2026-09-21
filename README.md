@@ -9,6 +9,8 @@
   Real-time remaining quotas and rate limits for Claude Code, Codex, Cursor, GitHub Copilot, Antigravity, Grok, and more.
 </p>
 
+> **Original project and author:** This public derivative is based on [qunqin24/Pulse](https://github.com/qunqin24/Pulse). The original project, its author, license, and attribution notices are preserved here.
+
 <p align="center">
   <a href="https://github.com/qunqin24/Pulse/releases/latest"><img src="https://img.shields.io/github/v/release/qunqin24/Pulse?color=black" alt="Latest Release"></a>
   <img src="https://img.shields.io/badge/macOS-14.0%2B%20Sonoma-333333?logo=apple" alt="macOS 14+">
