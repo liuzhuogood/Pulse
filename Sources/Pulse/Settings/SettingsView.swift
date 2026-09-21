@@ -391,6 +391,39 @@ struct SettingsView: View {
                 SettingsRowDivider()
 
                 SettingsRow(
+                    String.localized("Mouse passthrough"),
+                    subtitle: String.localized("Clicks go to the app behind the floating panel.")
+                ) {
+                    Toggle("", isOn: Binding(
+                        get: { settings.mousePassthrough },
+                        set: { settings.mousePassthrough = $0 }
+                    ))
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .disabled(!settings.isPanelVisible)
+                }
+
+                SettingsRowDivider()
+
+                SettingsRow(
+                    String.localized("Opacity"),
+                    subtitle: String.localized("How visible the floating panel is.")) {
+                    HStack(spacing: 8) {
+                        Slider(value: Binding(
+                            get: { settings.panelOpacity },
+                            set: { settings.panelOpacity = $0 }
+                        ), in: 0.2...1)
+                        Text("\(Int((settings.panelOpacity * 100).rounded()))%")
+                            .monospacedDigit()
+                            .frame(width: 34, alignment: .trailing)
+                    }
+                    .frame(width: SettingsLayout.controlWidth)
+                    .disabled(!settings.isPanelVisible)
+                }
+
+                SettingsRowDivider()
+
+                SettingsRow(
                     String.localized("Hide in full screen"),
                     subtitle: String.localized("Keep the floating panel out of full-screen apps.")
                 ) {
@@ -1147,9 +1180,9 @@ struct SettingsView: View {
             case .xiaomiMiMo:
                 host = XiaomiMiMoClient.host
                 keep = { try? XiaomiMiMoCookie.normalize($0) }
-            case .claudeCode, .codex, .antigravity, .cursor, .openCodeGo,
+           case .claudeCode, .codex, .antigravity, .cursor, .openCodeGo,
                  .kimiCode, .zai, .glmCoding, .minimax, .minimaxCN, .copilot,
-                 .grok, .grokBot, .volcengine, .commandCode, .deepSeek, .devin:
+                 .grok, .grokBot, .volcengine, .commandCode, .deepSeek, .devin, .custom:
                 // Not session-based: `readSession` sends those to
                 // `readBrowserStorage` before it gets here.
                 return
@@ -1758,16 +1791,25 @@ struct SettingsView: View {
         ) {
             Picker("", selection: Binding(
                 get: {
-                    let pinned = settings.pinnedWindow(for: account)
-                    // Show "automatic" when the pin no longer matches anything.
-                    return usage.windows.contains { $0.id == pinned } ? pinned : nil
+                    switch settings.ringDisplay(for: account) {
+                    case .allGroups:
+                        return .allGroups
+                    case .highestUsage:
+                        return .highestUsage
+                    case .window(let id):
+                        return usage.windows.contains { $0.id == id } ? .window(id) : .highestUsage
+                    }
                 },
-                set: { settings.setPinnedWindow($0, for: account) }
+                set: { settings.setRingDisplay($0, for: account) }
             )) {
-                Text(localized: "Highest usage").tag(String?.none)
+                Text(localized: "Highest usage").tag(RingDisplay.highestUsage)
+
+                if RailSlot.modelGroups(of: usage).count > 1 {
+                    Text(localized: "All groups").tag(RingDisplay.allGroups)
+                }
 
                 ForEach(usage.windows) { window in
-                    Text(window.name).tag(String?.some(window.id))
+                    Text(window.name).tag(RingDisplay.window(window.id))
                 }
             }
             .labelsHidden()
@@ -2194,14 +2236,60 @@ struct SettingsView: View {
                 // to itself does not use it — `fetchAdded` goes straight over
                 // HTTP with the token Pulse holds. Stating the CLI's route
                 // there would name a credential this account never touches.
-                if account.isPrimary, let route = account.provider.soleRoute {
-                    SettingsRow(String.localized("Read usage from"), subtitle: route.note) {
-                        Text(route.name)
-                            .font(.system(size: 12))
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.trailing)
-                            .frame(maxWidth: SettingsLayout.controlWidth, alignment: .trailing)
+               if account.isPrimary, let route = account.provider.soleRoute {
+                   SettingsRow(String.localized("Read usage from"), subtitle: route.note) {
+                       Text(route.name)
+                           .font(.system(size: 12))
+                           .foregroundStyle(.secondary)
+                           .multilineTextAlignment(.trailing)
+                           .frame(maxWidth: SettingsLayout.controlWidth, alignment: .trailing)
+                   }
+               }
+           }
+
+            if account.provider == .custom {
+               SettingsRow(
+                   String.localized("Script path"),
+                   subtitle: String.localized("Path to an executable script returning usage JSON on stdout.")
+               ) {
+                   HStack(spacing: 8) {
+                       TextField("", text: Binding(
+                            get: { settings.customScriptPath(for: account) ?? "" },
+                            set: { settings.setCustomScriptPath($0, for: account) }
+                       ))
+                       .textFieldStyle(.roundedBorder)
+                       .frame(width: SettingsLayout.controlWidth - 80)
+                        .onSubmit {
+                            store.refresh(account)
+                        }
+
+                        Button(String.localized("Test")) {
+                            store.refresh(account)
+                        }
                     }
+                }
+
+                SettingsRowDivider()
+
+                SettingsRow(
+                    String.localized("Icon"),
+                    subtitle: String.localized("Choose a built-in icon. A script-provided icon takes priority.")
+                ) {
+                    Picker("", selection: Binding(
+                        get: { settings.customIconResource(for: account) },
+                        set: { settings.setCustomIconResource($0, for: account) }
+                    )) {
+                        Text(localized: "Default").tag(String?.none)
+                        ForEach(PresetIcon.resources, id: \.self) { resource in
+                            HStack(spacing: 6) {
+                                LobeIconView(resource: resource, size: 14)
+                                Text(verbatim: resource)
+                            }
+                            .tag(String?.some(resource))
+                        }
+                    }
+                    .labelsHidden()
+                    .frame(maxWidth: SettingsLayout.controlWidth, alignment: .trailing)
                 }
             }
 
@@ -2229,10 +2317,11 @@ struct SettingsView: View {
     /// four questions it asks, answered before the heading is drawn.
     private func hasConnectionControls(for account: AccountKey) -> Bool {
         guard account.isPrimary else { return false }
-        if account.provider.hasSourceChoice { return true }
-        if account.provider == .copilot { return true }
-        if account.provider.usesAPIKey { return true }
-        return account.isPrimary && account.provider.soleRoute != nil
+       if account.provider.hasSourceChoice { return true }
+       if account.provider == .copilot { return true }
+       if account.provider.usesAPIKey { return true }
+        if account.provider.usesCustomScript { return true }
+       return account.isPrimary && account.provider.soleRoute != nil
     }
 
     /// Signing in to another subscription of the same provider, and getting
@@ -2242,11 +2331,55 @@ struct SettingsView: View {
     /// their own tool stored, and that store holds exactly one — a second
     /// account of theirs is not something Pulse can be shown, so offering it
     /// would be a control that cannot do anything.
-    @ViewBuilder
-    private func accounts(for account: AccountKey) -> some View {
-        if account.provider.supportsMultipleAccounts {
+   @ViewBuilder
+   private func accounts(for account: AccountKey) -> some View {
+        if account.provider == .custom {
             SettingsGroup(String.localized("Accounts")) {
                 Group {
+                    if account.isPrimary {
+                        SettingsRow(
+                            String.localized("Add another provider"),
+                            subtitle: String.localized("Configure another custom script provider instance.")
+                       ) {
+                           Button(String.localized("Add…")) {
+                               let count = settings.extraAccounts.filter { $0.provider == .custom }.count + 2
+                                let added = settings.addAccount(.custom, label: "Custom \(count)")
+                               navigation.open(.account(added), accounts: settings.allAccounts)
+                           }
+                       }
+                    }
+
+                    if !account.isPrimary {
+                        SettingsRow(
+                            String.localized("Provider name"),
+                            subtitle: String.localized("What to call this provider on the rail.")
+                        ) {
+                            TextField("", text: Binding(
+                                get: { settings.label(for: account) },
+                                set: { settings.rename(account, to: $0) }
+                            ))
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: SettingsLayout.controlWidth)
+                        }
+
+                        SettingsRowDivider()
+
+                        SettingsRow(
+                            String.localized("Remove provider"),
+                            subtitle: String.localized("Removes this custom provider from Pulse.")
+                        ) {
+                            Button(String.localized("Remove"), role: .destructive) {
+                                settings.setCustomScriptPath(nil, for: account)
+                                settings.removeAccount(account)
+                                pane = .general
+                            }
+                        }
+                    }
+                }
+            }
+        } else if account.provider.supportsMultipleAccounts {
+           SettingsGroup(String.localized("Accounts")) {
+               Group {
                     SettingsRow(
                         account.isPrimary ? String.localized("Add another account") : String.localized("Sign in again…"),
                         // The one thing someone should know before they start:

@@ -418,13 +418,14 @@ final class UsageStore {
             browser: settings.sessionBrowser(for: AccountKey(.devin))
         )
         let devinSource = settings.source(for: AccountKey(.devin))
-        let deepSeek = DeepSeekUsageService(
-            enteredKey: apiKeys[.deepSeek],
-            basis: settings.deepSeekBasis,
-            budget: settings.deepSeekBudget,
-            currency: settings.deepSeekCurrency
-        )
-        // Nothing is fetched for a provider that isn't on the rail: it would
+       let deepSeek = DeepSeekUsageService(
+           enteredKey: apiKeys[.deepSeek],
+           basis: settings.deepSeekBasis,
+           budget: settings.deepSeekBudget,
+           currency: settings.deepSeekCurrency
+       )
+        let customService = CustomScriptUsageService(scriptPath: settings.customScriptPath(for: AccountKey(.custom)))
+       // Nothing is fetched for a provider that isn't on the rail: it would
         // spend someone else's request, and read a credential, for a figure
         // nobody is going to see.
         // **And only the ones that are due.** One timer still drives the loop,
@@ -500,24 +501,28 @@ final class UsageStore {
             async let commandCodeUsage = wanted.contains(.commandCode)
                 ? await commandCode.fetch()
                 : ProviderUsage.unavailable(.commandCode, reason: .loading)
-            async let deepSeekUsage = wanted.contains(.deepSeek)
-                ? await deepSeek.fetch()
-                : ProviderUsage.unavailable(.deepSeek, reason: .loading)
-            async let devinUsage = wanted.contains(.devin)
-                ? await devin.fetch(source: devinSource)
-                : ProviderUsage.unavailable(.devin, reason: .loading)
+           async let deepSeekUsage = wanted.contains(.deepSeek)
+               ? await deepSeek.fetch()
+               : ProviderUsage.unavailable(.deepSeek, reason: .loading)
+           async let devinUsage = wanted.contains(.devin)
+               ? await devin.fetch(source: devinSource)
+               : ProviderUsage.unavailable(.devin, reason: .loading)
+            async let customUsage = wanted.contains(.custom)
+                ? await customService.fetch()
+                : ProviderUsage.unavailable(.custom, reason: .loading)
 
-            let (rawCodex, rawClaude, rawAntigravity, rawOpenCode) =
+           let (rawCodex, rawClaude, rawAntigravity, rawOpenCode) =
                 await (codexUsage, claudeUsage, antigravityUsage, openCodeUsage)
             let (rawKimi, rawCursor, rawOllama) = await (kimiUsage, cursorUsage, ollamaUsage)
             let (rawZai, rawGLM) = await (zaiUsage, glmUsage)
             let (rawMiniMax, rawMiniMaxCN) = await (minimaxUsage, minimaxCNUsage)
             let (rawCopilot, rawGrok, rawGrokBot) = await (copilotUsage, grokUsage, grokBotUsage)
             let (rawVolcengine, rawCommandCode) = await (volcengineUsage, commandCodeUsage)
-            let (rawDeepSeek, rawDevin) = await (deepSeekUsage, devinUsage)
-            let rawXiaomi = await xiaomiUsage
+           let (rawDeepSeek, rawDevin) = await (deepSeekUsage, devinUsage)
+           let rawXiaomi = await xiaomiUsage
+            let rawCustom = await customUsage
 
-            // **The disowning is checked before anything is written, not just
+           // **The disowning is checked before anything is written, not just
             // before the readings are handed to the panel.** `reconciled`
             // banks what it is given, so a pass that had been given up on used
             // to put its stale readings on disk on the way past — where the
@@ -552,11 +557,12 @@ final class UsageStore {
                 (.grok, rawGrok),
                 (.grokBot, rawGrokBot),
                 (.volcengine, rawVolcengine),
-                (.commandCode, rawCommandCode),
-                (.deepSeek, rawDeepSeek),
-                (.devin, rawDevin),
-                (.xiaomiMiMo, rawXiaomi),
-            ] where wanted.contains(provider) {
+               (.commandCode, rawCommandCode),
+               (.deepSeek, rawDeepSeek),
+               (.devin, rawDevin),
+               (.xiaomiMiMo, rawXiaomi),
+                (.custom, rawCustom),
+           ] where wanted.contains(provider) {
                 results.append(BatchResult(
                     provider: provider,
                     raw: raw,
@@ -705,10 +711,12 @@ final class UsageStore {
                 raw = await deepSeek.fetch()
             case .devin:
                 raw = await devinAccount.fetch(source: source)
-            case .xiaomiMiMo:
-                raw = await xiaomi.fetch()
-            }
-            }
+           case .xiaomiMiMo:
+               raw = await xiaomi.fetch()
+           case .custom:
+                raw = await CustomScriptUsageService(scriptPath: settings.customScriptPath(for: account)).fetch(account: account)
+           }
+           }
 
             guard pass == self.currentPass else { return }
 
@@ -745,16 +753,21 @@ final class UsageStore {
     /// A renewal that fails leaves the account signed out rather than
     /// reporting a network error — the remedy is the same either way, and it
     /// is one the user can act on.
-    private static func fetchAdded(
-        _ account: AccountKey,
-        claudeCode: ClaudeCodeUsageService,
-        codex: CodexUsageService,
-        grok: GrokUsageService,
-        grokBot: GrokBotUsageService
-    ) async -> ProviderUsage {
-        guard var credentials = AccountCredentialStore.credentials(for: account) else {
-            return .unavailable(account, reason: .signedOut)
+   private static func fetchAdded(
+       _ account: AccountKey,
+       claudeCode: ClaudeCodeUsageService,
+       codex: CodexUsageService,
+       grok: GrokUsageService,
+       grokBot: GrokBotUsageService
+   ) async -> ProviderUsage {
+        if account.provider == .custom {
+            let path = AppSettings.restored().customScriptPath(for: account)
+            return await CustomScriptUsageService(scriptPath: path).fetch(account: account)
         }
+
+       guard var credentials = AccountCredentialStore.credentials(for: account) else {
+           return .unavailable(account, reason: .signedOut)
+       }
 
         if !credentials.isFresh {
             // Grok Bot lands in the `else` deliberately: `OAuthLogin` has no
@@ -777,9 +790,9 @@ final class UsageStore {
         case .grok: await grok.fetch(account: account, token: credentials.accessToken)
         case .grokBot: await grokBot.fetch(account: account, token: credentials.accessToken)
         // Nothing else can be signed in to, so nothing else gets here.
-        case .antigravity, .cursor, .openCodeGo, .kimiCode, .ollamaCloud,
+       case .antigravity, .cursor, .openCodeGo, .kimiCode, .ollamaCloud,
              .zai, .glmCoding, .minimax, .minimaxCN, .copilot, .volcengine,
-             .commandCode, .deepSeek, .devin, .xiaomiMiMo:
+             .commandCode, .deepSeek, .devin, .xiaomiMiMo, .custom:
             .unavailable(account, reason: .loading)
         }
     }

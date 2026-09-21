@@ -31,9 +31,11 @@ enum ConnectionRemedy: Equatable {
         // recorded is one sign-in away, and opening the app is the step before
         // that either way.
         case .devinAppMissing, .devinPlanUnread: return .openApp("Devin")
-        case .notSignedIn, .signedOut: return .signIn
-        case .apiKeyMissing, .apiKeyRefused, .devinOrganizationMissing: return .editCredential
-        case .ollamaSessionMissing, .ollamaSessionExpired,
+       case .notSignedIn, .signedOut: return .signIn
+       case .apiKeyMissing, .apiKeyRefused, .devinOrganizationMissing: return .editCredential
+        case .customScriptMissing, .customScriptNotExecutable: return .editCredential
+        case .customScriptFailed: return .retry
+       case .ollamaSessionMissing, .ollamaSessionExpired,
              .xiaomiSessionMissing, .xiaomiSessionExpired: return .readBrowser
         case .claudeDesktopKeyRefused, .unreachable, .rateLimited, .serverError,
              .codexServerFailed: return .retry
@@ -73,10 +75,11 @@ enum ConnectionRemedy: Equatable {
         case .grok: "grok"
         case .grokBot: "grok-bot"
         case .volcengine: "volcengine"
-        case .commandCode: "command-code"
-        case .deepSeek: "deepseek"
-        case .devin: "devin"
-        }
+       case .commandCode: "command-code"
+       case .deepSeek: "deepseek"
+       case .devin: "devin"
+        case .custom: "README"
+       }
         return URL(string: "https://github.com/qunqin24/Pulse/blob/main/Docs/providers/\(page).md")!
     }
 }

@@ -2,6 +2,13 @@ import Foundation
 import Observation
 import SwiftUI
 
+/// The limit or group view selected for one account's rail entry.
+enum RingDisplay: Hashable {
+    case highestUsage
+    case allGroups
+    case window(String)
+}
+
 /// User-facing preferences, persisted in `UserDefaults`.
 @Observable
 final class AppSettings {
@@ -96,15 +103,73 @@ final class AppSettings {
 
     /// Which currency the ring follows when the account holds more than one.
     /// Nil takes the first the reply lists with money in it.
-    var deepSeekCurrency: String? {
+   var deepSeekCurrency: String? {
+       didSet {
+           guard deepSeekCurrency != oldValue else { return }
+           UserDefaults.standard.set(deepSeekCurrency, forKey: Key.deepSeekCurrency)
+           onChange?()
+       }
+   }
+
+   /// The path to a custom script that outputs usage JSON.
+   var customScriptPath: String? {
+       didSet {
+           guard customScriptPath != oldValue else { return }
+           UserDefaults.standard.set(customScriptPath, forKey: Key.customScriptPath)
+           onChange?()
+       }
+   }
+
+    /// Custom script paths per account slot, e.g. "custom" or "custom#<slot>".
+    var customScriptPaths: [String: String] {
         didSet {
-            guard deepSeekCurrency != oldValue else { return }
-            UserDefaults.standard.set(deepSeekCurrency, forKey: Key.deepSeekCurrency)
+            guard customScriptPaths != oldValue else { return }
+            UserDefaults.standard.set(customScriptPaths, forKey: Key.customScriptPaths)
             onChange?()
         }
     }
 
-    /// Warn when a prepaid balance falls below this much, per account.
+    /// The chosen built-in mark for each Custom script instance.
+    var customIconResources: [String: String] {
+        didSet {
+            guard customIconResources != oldValue else { return }
+            UserDefaults.standard.set(customIconResources, forKey: Key.customIconResources)
+            onChange?()
+        }
+    }
+
+    func customScriptPath(for account: AccountKey) -> String? {
+        customScriptPaths[account.id] ?? (account.isPrimary ? customScriptPath : nil)
+    }
+
+    func setCustomScriptPath(_ path: String?, for account: AccountKey) {
+        var updated = customScriptPaths
+        if let path = path?.trimmingCharacters(in: .whitespacesAndNewlines), !path.isEmpty {
+            updated[account.id] = path
+        } else {
+            updated.removeValue(forKey: account.id)
+        }
+        customScriptPaths = updated
+        if account.isPrimary {
+            customScriptPath = path
+        }
+    }
+
+    func customIconResource(for account: AccountKey) -> String? {
+        customIconResources[account.id]
+    }
+
+    func setCustomIconResource(_ resource: String?, for account: AccountKey) {
+        var updated = customIconResources
+        if let resource, PresetIcon.validResource(resource) {
+            updated[account.id] = resource
+        } else {
+            updated[account.id] = nil
+        }
+        customIconResources = updated
+    }
+
+   /// Warn when a prepaid balance falls below this much, per account.
     ///
     /// Empty is off, which is how it ships — the same rule every other alert
     /// follows. Keyed by account id and stored per account rather than as one
@@ -314,6 +379,16 @@ final class AppSettings {
         didSet {
             guard pinnedWindows != oldValue else { return }
             UserDefaults.standard.set(pinnedWindows, forKey: Key.pinnedWindows)
+            onChange?()
+        }
+    }
+
+    /// Accounts whose independently scoped limits each have a rail entry.
+    var allGroupAccounts: Set<String> {
+        didSet {
+            guard allGroupAccounts != oldValue else { return }
+            PanelMetrics.makeRoom(for: railSlotCount)
+            UserDefaults.standard.set(Array(allGroupAccounts), forKey: Key.allGroupAccounts)
             onChange?()
         }
     }
@@ -689,6 +764,33 @@ final class AppSettings {
         }
     }
 
+    /// When enabled, the floating panel does not receive mouse events and the
+    /// app beneath it stays directly usable.
+    var mousePassthrough: Bool {
+        didSet {
+            guard mousePassthrough != oldValue else { return }
+            // A collapsed rail opens on hover, which is impossible while the
+            // window ignores mouse events. Keep the panel visible instead.
+            if mousePassthrough { autoCollapse = false }
+            UserDefaults.standard.set(mousePassthrough, forKey: Key.mousePassthrough)
+            onChange?()
+        }
+    }
+
+    /// Whole-window opacity. The lower bound keeps percentage labels legible.
+    var panelOpacity: Double {
+        didSet {
+            let normalized = min(max(panelOpacity, 0.2), 1)
+            if normalized != panelOpacity {
+                panelOpacity = normalized
+                return
+            }
+            guard panelOpacity != oldValue else { return }
+            UserDefaults.standard.set(panelOpacity, forKey: Key.panelOpacity)
+            onChange?()
+        }
+    }
+
     /// Whether the rail hides down to a sliver when the pointer is elsewhere.
     ///
     /// On by default. The panel sits over whatever else is on screen all day,
@@ -789,7 +891,8 @@ final class AppSettings {
     }
 
     func isSplit(_ account: AccountKey) -> Bool {
-        account.provider.splitsByModelGroup && splitAccounts.contains(account.id)
+        allGroupAccounts.contains(account.id)
+            || (account.provider.splitsByModelGroup && splitAccounts.contains(account.id))
     }
 
     func setSplit(_ split: Bool, for account: AccountKey) {
@@ -821,15 +924,19 @@ final class AppSettings {
         followsActiveDisplay: Bool = false,
         openSettingsShortcut: GlobalShortcut? = nil,
         togglePanelShortcut: GlobalShortcut? = nil,
-        deepSeekBasis: DeepSeekBasis = .default,
-        deepSeekBudget: Double? = nil,
-        deepSeekCurrency: String? = nil,
-        lowBalanceAlerts: [String: Double] = [:],
+       deepSeekBasis: DeepSeekBasis = .default,
+       deepSeekBudget: Double? = nil,
+       deepSeekCurrency: String? = nil,
+        customScriptPath: String? = nil,
+        customScriptPaths: [String: String] = [:],
+        customIconResources: [String: String] = [:],
+       lowBalanceAlerts: [String: Double] = [:],
         enabledAccounts: Set<String> = Set(Provider.allCases.map(\.rawValue)),
         extraAccounts: [ExtraAccount] = [],
         providerOrder: [String] = [],
         language: AppLanguage = .system,
         pinnedWindows: [String: String] = [:],
+        allGroupAccounts: Set<String> = [],
         sources: [String: String] = [:],
         sessionBrowsers: [String: String] = [:],
         ringTints: [String: String] = [:],
@@ -843,6 +950,8 @@ final class AppSettings {
         panelSize: PanelSize = .default,
         railSpacing: RailSpacing = .default,
         usesGlass: Bool = false,
+        mousePassthrough: Bool = false,
+        panelOpacity: Double = 1,
         topRailShowsPercentages: Bool = false,
         sideRailShowsPercentages: Bool = true,
         labelAboveRing: Bool = false,
@@ -863,15 +972,19 @@ final class AppSettings {
         self.followsActiveDisplay = followsActiveDisplay
         self.openSettingsShortcut = openSettingsShortcut
         self.togglePanelShortcut = togglePanelShortcut
-        self.deepSeekBasis = deepSeekBasis
-        self.deepSeekBudget = deepSeekBudget
-        self.deepSeekCurrency = deepSeekCurrency
-        self.lowBalanceAlerts = lowBalanceAlerts
+       self.deepSeekBasis = deepSeekBasis
+       self.deepSeekBudget = deepSeekBudget
+       self.deepSeekCurrency = deepSeekCurrency
+       self.customScriptPath = customScriptPath
+        self.customScriptPaths = customScriptPaths
+        self.customIconResources = customIconResources
+       self.lowBalanceAlerts = lowBalanceAlerts
         self.enabledAccounts = enabledAccounts
         self.extraAccounts = extraAccounts
         self.providerOrder = providerOrder
         self.language = language
         self.pinnedWindows = pinnedWindows
+        self.allGroupAccounts = allGroupAccounts
         self.sources = sources
         self.sessionBrowsers = sessionBrowsers
         self.ringTints = ringTints
@@ -885,6 +998,8 @@ final class AppSettings {
         self.panelSize = panelSize
         self.railSpacing = railSpacing
         self.usesGlass = usesGlass
+        self.mousePassthrough = mousePassthrough
+        self.panelOpacity = min(max(panelOpacity, 0.2), 1)
         self.topRailShowsPercentages = topRailShowsPercentages
         self.sideRailShowsPercentages = sideRailShowsPercentages
         self.labelAboveRing = labelAboveRing
@@ -1031,6 +1146,31 @@ final class AppSettings {
         pinnedWindows[account.id]
     }
 
+    func ringDisplay(for account: AccountKey) -> RingDisplay {
+        if allGroupAccounts.contains(account.id) { return .allGroups }
+        return pinnedWindow(for: account).map(RingDisplay.window) ?? .highestUsage
+    }
+
+    func setRingDisplay(_ display: RingDisplay, for account: AccountKey) {
+        var allGroups = allGroupAccounts
+        var pinned = pinnedWindows
+
+        switch display {
+        case .highestUsage:
+            allGroups.remove(account.id)
+            pinned.removeValue(forKey: account.id)
+        case .allGroups:
+            allGroups.insert(account.id)
+            pinned.removeValue(forKey: account.id)
+        case .window(let id):
+            allGroups.remove(account.id)
+            pinned[account.id] = id
+        }
+
+        allGroupAccounts = allGroups
+        pinnedWindows = pinned
+    }
+
     func setPinnedWindow(_ id: String?, for account: AccountKey) {
         var updated = pinnedWindows
         updated[account.id] = id
@@ -1122,14 +1262,18 @@ final class AppSettings {
                 .flatMap(GlobalShortcut.init(storage:)),
             deepSeekBasis: defaults.string(forKey: Key.deepSeekBasis)
                 .flatMap(DeepSeekBasis.init(rawValue:)) ?? .default,
-            deepSeekBudget: defaults.object(forKey: Key.deepSeekBudget) as? Double,
-            deepSeekCurrency: defaults.string(forKey: Key.deepSeekCurrency),
-            lowBalanceAlerts: defaults.dictionary(forKey: Key.lowBalanceAlerts) as? [String: Double] ?? [:],
+           deepSeekBudget: defaults.object(forKey: Key.deepSeekBudget) as? Double,
+           deepSeekCurrency: defaults.string(forKey: Key.deepSeekCurrency),
+           customScriptPath: defaults.string(forKey: Key.customScriptPath),
+            customScriptPaths: defaults.dictionary(forKey: Key.customScriptPaths) as? [String: String] ?? [:],
+            customIconResources: defaults.dictionary(forKey: Key.customIconResources) as? [String: String] ?? [:],
+           lowBalanceAlerts: defaults.dictionary(forKey: Key.lowBalanceAlerts) as? [String: Double] ?? [:],
             enabledAccounts: selection.enabledAccounts,
             extraAccounts: extras,
             providerOrder: defaults.stringArray(forKey: Key.providerOrder) ?? [],
             language: language,
             pinnedWindows: defaults.dictionary(forKey: Key.pinnedWindows) as? [String: String] ?? [:],
+            allGroupAccounts: Set(defaults.stringArray(forKey: Key.allGroupAccounts) ?? []),
             sources: defaults.dictionary(forKey: Key.sources) as? [String: String] ?? [:],
             sessionBrowsers: defaults.dictionary(forKey: Key.sessionBrowsers) as? [String: String] ?? [:],
             ringTints: defaults.dictionary(forKey: Key.ringTints) as? [String: String] ?? [:],
@@ -1146,6 +1290,8 @@ final class AppSettings {
             railSpacing: defaults.string(forKey: Key.railSpacing)
                 .flatMap(RailSpacing.init(rawValue:)) ?? .default,
             usesGlass: defaults.object(forKey: Key.usesGlass) as? Bool ?? false,
+            mousePassthrough: defaults.object(forKey: Key.mousePassthrough) as? Bool ?? false,
+            panelOpacity: defaults.object(forKey: Key.panelOpacity) as? Double ?? 1,
             topRailShowsPercentages: defaults.object(forKey: Key.topRailShowsPercentages) as? Bool ?? false,
             sideRailShowsPercentages: defaults.object(forKey: Key.sideRailShowsPercentages) as? Bool ?? true,
             labelAboveRing: defaults.object(forKey: Key.labelAboveRing) as? Bool ?? false,
@@ -1224,6 +1370,8 @@ final class AppSettings {
         }
         providerOrder.removeAll { $0 == account.id }
         pinnedWindows[account.id] = nil
+        allGroupAccounts.remove(account.id)
+        customIconResources[account.id] = nil
         sources[account.id] = nil
         ringTints[account.id] = nil
         sessionBrowsers[account.id] = nil
@@ -1241,12 +1389,16 @@ final class AppSettings {
         static let followsActiveDisplay = "settings.followsActiveDisplay"
         static let openSettingsShortcut = "settings.openSettingsShortcut"
         static let togglePanelShortcut = "settings.togglePanelShortcut"
-        static let deepSeekBasis = "settings.deepSeekBasis"
-        static let deepSeekBudget = "settings.deepSeekBudget"
-        static let deepSeekCurrency = "settings.deepSeekCurrency"
-        static let lowBalanceAlerts = "settings.lowBalanceAlerts"
+       static let deepSeekBasis = "settings.deepSeekBasis"
+       static let deepSeekBudget = "settings.deepSeekBudget"
+       static let deepSeekCurrency = "settings.deepSeekCurrency"
+       static let customScriptPath = "settings.customScriptPath"
+        static let customScriptPaths = "settings.customScriptPaths"
+        static let customIconResources = "settings.customIconResources"
+       static let lowBalanceAlerts = "settings.lowBalanceAlerts"
         static let language = "settings.language"
         static let pinnedWindows = "settings.pinnedWindows"
+        static let allGroupAccounts = "settings.allGroupAccounts"
         static let sources = "settings.sources"
         static let sessionBrowsers = "settings.sessionBrowsers"
         static let ringTints = "settings.ringTints"
@@ -1260,6 +1412,8 @@ final class AppSettings {
         static let panelSize = "settings.panelSize"
         static let railSpacing = "settings.railSpacing"
         static let usesGlass = "settings.usesGlass"
+        static let mousePassthrough = "settings.mousePassthrough"
+        static let panelOpacity = "settings.panelOpacity"
         static let topRailShowsPercentages = "settings.topRailShowsPercentages"
         static let sideRailShowsPercentages = "settings.sideRailShowsPercentages"
         static let labelAboveRing = "settings.labelAboveRing"

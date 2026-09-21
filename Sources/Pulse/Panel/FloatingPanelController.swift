@@ -259,6 +259,7 @@ final class FloatingPanelController {
     /// Brings the panel in line with settings that were just changed.
     func settingsChanged() {
         applyCollectionBehavior()
+        applyInteractionAppearance()
         applyDisplayFollowing()
 
         if settings.isPanelVisible {
@@ -281,6 +282,12 @@ final class FloatingPanelController {
         panel.becomesKeyOnlyIfNeeded = true
         panel.applyLevel(for: placement.dock)
         applyCollectionBehavior()
+        applyInteractionAppearance()
+    }
+
+    private func applyInteractionAppearance() {
+        panel.ignoresMouseEvents = settings.mousePassthrough
+        panel.alphaValue = settings.panelOpacity
     }
 
     /// Keeps the rail on every ordinary desktop Space while deciding separately

@@ -611,3 +611,29 @@
 "Uses a browser session you import in Settings. Importing may ask for browser Keychain access." = "使用你在設定中匯入的瀏覽器登入工作階段。匯入時可能要求瀏覽器的鑰匙圈存取權限。";
 "Uses the GitHub login you connect in Settings. No Keychain prompt." = "使用你在設定中連結的 GitHub 登入。不會出現鑰匙圈提示。";
 "Uses only the API key you enter in Settings. No Keychain prompt." = "只使用你在設定中輸入的 API 金鑰。不會出現鑰匙圈提示。";
+
+"Runs a local script you specify in Settings to fetch usage. No Keychain prompt." = "執行在「設定」中指定的本機指令碼以取得用量。無需存取鑰匙圈。";
+"Script path" = "指令碼路徑";
+"Path to an executable script returning usage JSON on stdout." = "向標準輸出輸出約定用量 JSON 的可執行指令碼路徑。";
+"Test" = "測試";
+"Configure an executable script path in Settings." = "請在「設定」中設定可執行指令碼路徑。";
+"The script is not executable. Run chmod +x on it." = "指令碼不可執行，請為其新增執行權限（chmod +x）。";
+"The custom script failed to execute." = "自訂指令碼執行失敗。";
+"Custom script" = "自訂指令碼";
+
+
+"Add another provider" = "新增另一個供應商";
+"Configure another custom script provider instance." = "設定另一個自訂指令碼供應商執行個體。";
+"Add…" = "新增…";
+"Provider name" = "供應商名稱";
+"What to call this provider on the rail." = "在監控軌道上顯示的名稱。";
+"Remove provider" = "移除供應商";
+"Removes this custom provider from Pulse." = "從 Pulse 中移除此自訂供應商。";
+"All groups" = "所有群組";
+"Icon" = "圖示";
+"Default" = "預設";
+"Choose a built-in icon. A script-provided icon takes priority." = "選擇內建圖示。指令碼指定的圖示優先。";
+"Mouse passthrough" = "滑鼠穿透";
+"Clicks go to the app behind the floating panel." = "點擊會直接作用於浮動面板後面的應用程式。";
+"Opacity" = "透明度";
+"How visible the floating panel is." = "調整浮動面板的可見程度。";

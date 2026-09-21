@@ -3,6 +3,8 @@ import SwiftUI
 
 struct UsageRingView: View {
     let provider: Provider
+    /// A Custom script's selected bundled mark, if it supplied one.
+    var iconResource: String?
     /// How much of the tightest limit is gone, or nil when there is no
     /// fraction to draw — an empty track then says "nothing known" rather than
     /// "nothing used".
@@ -285,10 +287,13 @@ struct UsageRingView: View {
                     size: centreDiameter * Self.botScale
                 )
             } else {
-                LobeIconView(
-                    provider: provider,
-                    size: centreDiameter * Self.iconScale
-                )
+                Group {
+                    if let iconResource {
+                        LobeIconView(resource: iconResource, size: centreDiameter * Self.iconScale)
+                    } else {
+                        LobeIconView(provider: provider, size: centreDiameter * Self.iconScale)
+                    }
+                }
                 // Dimmed while there is no reading, so the rail shows at a
                 // glance which providers it actually has data for.
                 .foregroundStyle(.primary.opacity(hasReading ? 1 : 0.35))
@@ -497,6 +502,24 @@ struct LobeIconView: View {
     }
 }
 
+/// The bundled marks Custom scripts may name. Keeping this list explicit
+/// prevents a script from treating an arbitrary filesystem path as artwork.
+enum PresetIcon {
+    static let resources = [
+        "amp", "antigravity", "cherrystudio", "claude", "cline", "commandcode",
+        "cursor", "custom", "deepseek", "devin", "gemini", "github", "goose",
+        "grok", "hermesagent", "junie", "kilocode", "kimi", "kiro", "lmstudio",
+        "minimax", "ollama", "openai", "openclaw", "opencode", "pi", "qingyan",
+        "qwen", "roocode", "tencent", "trae", "unsloth", "volcengine", "xai",
+        "xiaomimimo", "zai"
+    ]
+
+    static func validResource(_ resource: String?) -> Bool {
+        guard let resource else { return false }
+        return resources.contains(resource)
+    }
+}
+
 /// Loads the bundled Lobe Icons (https://github.com/lobehub/lobe-icons) once
 /// and keeps them around, keyed by provider.
 ///
@@ -533,12 +556,23 @@ enum LobeIconStore {
 
     static func image(named name: String) -> NSImage? {
         if let cached = images[name] { return cached }
-        guard
-            let url = Bundle.module.url(forResource: name, withExtension: "svg"),
-            let image = NSImage(contentsOf: url)
-        else {
+        guard let url = Bundle.module.url(forResource: name, withExtension: "svg") else {
             return nil
         }
+
+        // Lobe Icons declare their canvas as `1em`. AppKit reads that as a
+        // one-pixel raster image for a few icons (notably Gemini), then simply
+        // stretches the empty-looking pixel. Give CoreSVG a concrete canvas
+        // before it creates the image representation.
+        let image = (try? String(contentsOf: url, encoding: .utf8))
+            .map { source in
+                source
+                    .replacingOccurrences(of: "width=\"1em\"", with: "width=\"256\"")
+                    .replacingOccurrences(of: "height=\"1em\"", with: "height=\"256\"")
+            }
+            .flatMap { NSImage(data: Data($0.utf8)) }
+            ?? NSImage(contentsOf: url)
+        guard let image else { return nil }
         image.size = renderSize
         image.isTemplate = true
         images[name] = image

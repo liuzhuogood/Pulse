@@ -9,11 +9,12 @@ enum UsageRoute: String, Codable, Sendable {
     case languageServer
     case webSession
     case arkCLI
-    /// A reading taken out of a desktop app's own saved state rather than
-    /// asked of anybody. Devin's: written when that app starts.
-    case appCache
+   /// A reading taken out of a desktop app's own saved state rather than
+   /// asked of anybody. Devin's: written when that app starts.
+   case appCache
+    case script
 
-    var title: String {
+   var title: String {
         switch self {
         case .endpoint: .localized("Usage endpoint")
         case .statusLine: .localized("Claude Code status line")
@@ -21,10 +22,11 @@ enum UsageRoute: String, Codable, Sendable {
         case .appServer: .localized("Codex app server")
         case .languageServer: .localized("Local language server")
         case .webSession: .localized("Signed-in web page")
-        case .arkCLI: "arkcli"
-        case .appCache: .localized("The app's saved plan")
-        }
-    }
+       case .arkCLI: "arkcli"
+       case .appCache: .localized("The app's saved plan")
+        case .script: .localized("Custom script")
+       }
+   }
 
     /// Only single-route providers can be labelled outside their service.
     static func soleRoute(for account: AccountKey) -> UsageRoute? {
@@ -34,11 +36,13 @@ enum UsageRoute: String, Codable, Sendable {
         case .antigravity: return .languageServer
         // Both read a signed-in browser session rather than a key.
         case .ollamaCloud, .xiaomiMiMo: return .webSession
-        case .cursor, .openCodeGo, .kimiCode, .zai, .glmCoding, .minimax,
-             .minimaxCN, .copilot, .grok, .grokBot, .commandCode, .deepSeek:
-            return .endpoint
-        }
-    }
+       case .cursor, .openCodeGo, .kimiCode, .zai, .glmCoding, .minimax,
+            .minimaxCN, .copilot, .grok, .grokBot, .commandCode, .deepSeek:
+           return .endpoint
+        case .custom:
+            return .script
+       }
+   }
 }
 
 extension ProviderUsage {

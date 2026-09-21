@@ -25,6 +25,7 @@ enum Provider: String, CaseIterable, Identifiable, Codable, Sendable {
     case deepSeek
     case devin
     case xiaomiMiMo
+    case custom
 
     var id: String { rawValue }
 
@@ -83,11 +84,12 @@ enum Provider: String, CaseIterable, Identifiable, Codable, Sendable {
         // The plan, not the platform. Xiaomi's open platform sells inference
         // by the yuan to anyone with a key; this ring is about the monthly
         // token allowance bought on top of that, which is the thing with a
-        // denominator and the thing the buyer signed up for. "Xiaomi MiMo"
-        // would name the platform and leave the two products sharing a row.
-        case .xiaomiMiMo: "Xiaomi Coding Plan"
-        }
-    }
+       // denominator and the thing the buyer signed up for. "Xiaomi MiMo"
+       // would name the platform and leave the two products sharing a row.
+       case .xiaomiMiMo: "Xiaomi Coding Plan"
+        case .custom: "Custom"
+       }
+   }
 
     /// The parent brand's mark rather than the CLI-specific one — these read
     /// better at ring size and are what people recognise.
@@ -126,10 +128,11 @@ enum Provider: String, CaseIterable, Identifiable, Codable, Sendable {
         // "Xiaomi / MiMo" lockup and that is what the console's own favicon
         // is. Shipped as it stands rather than cropped to something Xiaomi
         // does not use; at ring size it reads as a shape rather than as words,
-        // which is the trade for being the real mark.
-        case .xiaomiMiMo: "xiaomimimo"
-        }
-    }
+       // which is the trade for being the real mark.
+       case .xiaomiMiMo: "xiaomimimo"
+        case .custom: "custom"
+       }
+   }
 
     /// Whether this agent leaves transcripts on disk that Pulse can read.
     ///
@@ -148,9 +151,9 @@ enum Provider: String, CaseIterable, Identifiable, Codable, Sendable {
         // its own store rather than the JSONL both CLIs above write, so the
         // ledger cannot read it yet. False here means "no history shown",
         // which is true today and better than a column of zeroes.
-        case .antigravity, .cursor, .openCodeGo, .kimiCode, .ollamaCloud,
+       case .antigravity, .cursor, .openCodeGo, .kimiCode, .ollamaCloud,
              .zai, .glmCoding, .minimax, .minimaxCN, .copilot, .grok, .grokBot,
-             .volcengine, .commandCode, .deepSeek, .devin, .xiaomiMiMo: false
+             .volcengine, .commandCode, .deepSeek, .devin, .xiaomiMiMo, .custom: false
         }
     }
 
@@ -195,9 +198,9 @@ enum Provider: String, CaseIterable, Identifiable, Codable, Sendable {
     var hasSourceChoice: Bool {
         switch self {
         case .claudeCode, .codex, .volcengine, .devin: true
-        case .antigravity, .cursor, .openCodeGo, .kimiCode, .ollamaCloud,
+       case .antigravity, .cursor, .openCodeGo, .kimiCode, .ollamaCloud,
              .zai, .glmCoding, .minimax, .minimaxCN, .copilot, .grok, .grokBot,
-             .commandCode, .deepSeek, .xiaomiMiMo: false
+             .commandCode, .deepSeek, .xiaomiMiMo, .custom: false
         }
     }
 
@@ -229,11 +232,11 @@ enum Provider: String, CaseIterable, Identifiable, Codable, Sendable {
         case .grokBot:
             (String.localized("Cursor's own login"),
              String.localized("Grok Bot is billed to your Cursor account."))
-        // Either a choice of routes, or a key the user pastes: both are asked
-        // about elsewhere, so there is nothing here to state.
-        case .claudeCode, .codex, .openCodeGo, .kimiCode, .ollamaCloud,
-             .zai, .glmCoding, .minimax, .minimaxCN, .copilot, .volcengine,
-             .commandCode, .deepSeek, .devin, .xiaomiMiMo:
+       // Either a choice of routes, or a key the user pastes: both are asked
+       // about elsewhere, so there is nothing here to state.
+       case .claudeCode, .codex, .openCodeGo, .kimiCode, .ollamaCloud,
+            .zai, .glmCoding, .minimax, .minimaxCN, .copilot, .volcengine,
+             .commandCode, .deepSeek, .devin, .xiaomiMiMo, .custom:
             nil
         }
     }
@@ -293,9 +296,12 @@ enum Provider: String, CaseIterable, Identifiable, Codable, Sendable {
     /// lives in a different file in a different format and — because it is not
     /// encrypted — needs no keychain permission. Both want the same row in
     /// Settings: which browser, and a button to go and look.
-    var readsBrowserStorage: Bool { usesSessionCookie || self == .devin }
+   var readsBrowserStorage: Bool { usesSessionCookie || self == .devin }
 
-    /// Whether Pulse holds a credential of its own for this provider.
+    /// Whether this provider executes an external script configured in Settings.
+    var usesCustomScript: Bool { self == .custom }
+
+   /// Whether Pulse holds a credential of its own for this provider.
     ///
     /// **Not the same question as `usesAPIKey`**, which asks whether the user
     /// pastes one and so decides what Settings draws. Copilot is signed in to

@@ -385,9 +385,10 @@ struct AlertMemory: Codable, Sendable, Equatable {
     static func standing(of reason: ProviderUsage.Unavailability) -> Standing {
         switch reason {
         case .claudeLoginExpired, .claudeDesktopKeyRefused, .claudeDesktopSessionExpired,
-             .cursorLoginExpired, .grokLoginExpired, .signedOut, .apiKeyRefused,
-             .ollamaSessionExpired, .ollamaPageChanged, .xiaomiSessionExpired,
-             .unreachable, .unreadableReply, .rateLimited, .serverError,
+            .cursorLoginExpired, .grokLoginExpired, .signedOut, .apiKeyRefused,
+            .ollamaSessionExpired, .ollamaPageChanged, .xiaomiSessionExpired,
+             .customScriptFailed,
+            .unreachable, .unreadableReply, .rateLimited, .serverError,
              .codexServerFailed:
             .failure
 
@@ -415,9 +416,10 @@ struct AlertMemory: Codable, Sendable, Equatable {
              .codexNotInstalled, .antigravityNotRunning, .antigravityNotAnswering,
              .cursorSignInRequired, .grokSignInRequired, .notSignedIn,
              .ollamaSessionMissing, .xiaomiSessionMissing,
-             .apiKeyMissing, .volcengineCLIMissing,
-             .volcengineSignInRequired,
-             // An app that was never installed or never signed in, which is
+            .apiKeyMissing, .volcengineCLIMissing,
+            .volcengineSignInRequired,
+             .customScriptMissing, .customScriptNotExecutable,
+            // An app that was never installed or never signed in, which is
              // the same standing as a CLI that is not there: true until
              // somebody does something, and not an outage to announce.
              .devinAppMissing, .devinPlanUnread, .devinOrganizationMissing:

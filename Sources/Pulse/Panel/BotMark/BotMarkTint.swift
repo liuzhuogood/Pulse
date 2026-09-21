@@ -39,8 +39,8 @@ enum BotMarkTint {
         // Xiaomi's orange. The MiMo console is black-on-white, but the parent
         // brand's colour is the one a reader recognises on a rail.
         case .xiaomiMiMo: BotMarkPalette.rgb(0xFF6900)
-        case .codex, .cursor, .openCodeGo, .ollamaCloud, .zai,
-             .copilot, .grok, .grokBot, .commandCode, .devin:
+       case .codex, .cursor, .openCodeGo, .ollamaCloud, .zai,
+             .copilot, .grok, .grokBot, .commandCode, .devin, .custom:
             nil
         }
     }
@@ -141,7 +141,7 @@ enum BotMarkTint {
         brand(for: provider) == nil
     }
 
-    private static let paletteSize = 10
+    private static let paletteSize = 11
 
     /// The wheel, solved once: ten hues 36° apart, each at the same
     /// luminance. `dealt(at:)` is a bisection, and a rail is dealt on every
@@ -161,7 +161,7 @@ enum BotMarkTint {
 
     /// The nth dealt colour: an even hue, levelled to one brightness.
     ///
-    /// Ten hues 36° apart — the widest any ten can be. Which ring gets which
+    /// Eleven hues spaced evenly around the wheel. Which ring gets which
     /// is `deal(over:)`'s business; this is only the wheel it draws from.
     /// Hand-picked hexes were tried first and put two greens 49° apart, two
     /// blues 14° and two ambers 13°, which is what a palette chosen by eye
@@ -176,7 +176,7 @@ enum BotMarkTint {
     private static func dealt(at index: Int) -> Color {
         // 27° is the offset that keeps the wheel as a whole furthest from the
         // hues the brand colours already hold.
-        let hue = Double((27 + 36 * (index % paletteSize)) % 360)
+        let hue = Double((27 + Int((360.0 / Double(paletteSize)) * Double(index % paletteSize))) % 360)
         return levelled(hue: hue, saturation: 0.68, target: 0.62)
     }
 

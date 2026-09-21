@@ -33,8 +33,8 @@ extension Provider {
             return ["Devin", "Windsurf"].map {
                 local("Library/Application Support/\($0)/User/globalStorage/state.vscdb")
             }
-        case .kimiCode, .ollamaCloud, .zai, .minimax, .minimaxCN, .copilot,
-             .volcengine, .deepSeek, .xiaomiMiMo:
+       case .kimiCode, .ollamaCloud, .zai, .minimax, .minimaxCN, .copilot,
+             .volcengine, .deepSeek, .xiaomiMiMo, .custom:
             return []
         }
     }

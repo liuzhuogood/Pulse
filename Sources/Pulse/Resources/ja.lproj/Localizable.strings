@@ -611,3 +611,29 @@
 "Uses a browser session you import in Settings. Importing may ask for browser Keychain access." = "設定で読み込んだブラウザのログインセッションを使います。読み込み時にブラウザのキーチェーンへのアクセスを求めることがあります。";
 "Uses the GitHub login you connect in Settings. No Keychain prompt." = "設定で連携した GitHub のログインを使います。キーチェーンの確認はありません。";
 "Uses only the API key you enter in Settings. No Keychain prompt." = "設定で入力した API キーだけを使います。キーチェーンの確認はありません。";
+
+"Runs a local script you specify in Settings to fetch usage. No Keychain prompt." = "設定で指定したローカルスクリプトを実行して使用量を取得します。キーチェーンへのアクセスはありません。";
+"Script path" = "スクリプトのパス";
+"Path to an executable script returning usage JSON on stdout." = "標準出力に所定の使用量JSONを出力する実行可能スクリプトのパス。";
+"Test" = "テスト";
+"Configure an executable script path in Settings." = "設定で実行可能なスクリプトのパスを指定してください。";
+"The script is not executable. Run chmod +x on it." = "スクリプトが実行可能ではありません。chmod +x を実行してください。";
+"The custom script failed to execute." = "カスタムスクリプトの実行に失敗しました。";
+"Custom script" = "カスタムスクリプト";
+
+
+"Add another provider" = "別のプロバイダーを追加";
+"Configure another custom script provider instance." = "別のカスタムスクリプトプロバイダーインスタンスを設定します。";
+"Add…" = "追加…";
+"Provider name" = "プロバイダー名";
+"What to call this provider on the rail." = "レール上に表示する名前。";
+"Remove provider" = "プロバイダーを削除";
+"Removes this custom provider from Pulse." = "このカスタムプロバイダーをPulseから削除します。";
+"All groups" = "すべてのグループ";
+"Icon" = "アイコン";
+"Default" = "デフォルト";
+"Choose a built-in icon. A script-provided icon takes priority." = "組み込みアイコンを選択します。スクリプトで指定したアイコンが優先されます。";
+"Mouse passthrough" = "マウスを透過";
+"Clicks go to the app behind the floating panel." = "クリックを背後のアプリに送ります。";
+"Opacity" = "不透明度";
+"How visible the floating panel is." = "フローティングパネルの見え方を調整します。";

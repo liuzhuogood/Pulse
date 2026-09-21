@@ -79,6 +79,8 @@ struct UsageWindow: Identifiable, Equatable, Codable, Sendable {
     let usedFraction: Double
     let windowSeconds: Int
     let resetsAt: Date?
+    /// A bundled icon requested by a Custom script for this limit's group.
+    var iconResource: String?
 
     /// Whether `windowSeconds` is a length the provider actually **stated**,
     /// or one chosen so the row sorts.
@@ -133,6 +135,7 @@ struct UsageWindow: Identifiable, Equatable, Codable, Sendable {
         usedFraction: Double,
         windowSeconds: Int,
         resetsAt: Date?,
+        iconResource: String? = nil,
         reportsLength: Bool = true,
         estimate: Estimate? = nil,
         isExhausted: Bool = false
@@ -143,6 +146,7 @@ struct UsageWindow: Identifiable, Equatable, Codable, Sendable {
         self.usedFraction = usedFraction
         self.windowSeconds = windowSeconds
         self.resetsAt = resetsAt
+        self.iconResource = iconResource
         self.reportsLength = reportsLength
         self.estimate = estimate
         self.isExhausted = isExhausted
@@ -166,6 +170,7 @@ struct UsageWindow: Identifiable, Equatable, Codable, Sendable {
         usedFraction = try container.decode(Double.self, forKey: .usedFraction)
         windowSeconds = try container.decode(Int.self, forKey: .windowSeconds)
         resetsAt = try container.decodeIfPresent(Date.self, forKey: .resetsAt)
+        iconResource = try container.decodeIfPresent(String.self, forKey: .iconResource)
         reportsLength = try container.decodeIfPresent(Bool.self, forKey: .reportsLength) ?? true
         isExhausted = try container.decodeIfPresent(Bool.self, forKey: .isExhausted) ?? false
 
@@ -189,13 +194,14 @@ struct UsageWindow: Identifiable, Equatable, Codable, Sendable {
         try container.encode(usedFraction, forKey: .usedFraction)
         try container.encode(windowSeconds, forKey: .windowSeconds)
         try container.encodeIfPresent(resetsAt, forKey: .resetsAt)
+        try container.encodeIfPresent(iconResource, forKey: .iconResource)
         try container.encode(reportsLength, forKey: .reportsLength)
         try container.encodeIfPresent(estimate, forKey: .estimate)
         try container.encode(isExhausted, forKey: .isExhausted)
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, kind, scope, usedFraction, windowSeconds, resetsAt
+        case id, kind, scope, usedFraction, windowSeconds, resetsAt, iconResource
         case reportsLength, isExhausted, estimate
         /// Written by 1.0.9 and earlier. Read, never written.
         case isEstimated
@@ -482,13 +488,16 @@ struct ProviderUsage: Identifiable, Equatable, Sendable {
         /// buys tokens by the yuan instead. A complete answer, not a fault,
         /// and the same distinction `zaiNoCodingPlan` exists for.
         case xiaomiNoCodingPlan
-        /// No key has been entered for a provider that needs one.
-        case apiKeyMissing
-        /// There is a key, and the service refused it.
-        case apiKeyRefused
-        case unreachable
-        case unreadableReply
-        case rateLimited
+       /// No key has been entered for a provider that needs one.
+       case apiKeyMissing
+       /// There is a key, and the service refused it.
+       case apiKeyRefused
+        case customScriptMissing
+        case customScriptNotExecutable
+        case customScriptFailed
+       case unreachable
+       case unreadableReply
+       case rateLimited
         case serverError
 
         var message: String {
@@ -526,10 +535,13 @@ struct ProviderUsage: Identifiable, Equatable, Sendable {
             case .devinAppMissing: .localized("Devin isn't installed.")
             case .devinPlanUnread: .localized("Open Devin and sign in, so it can record your plan.")
             case .devinOrganizationMissing: .localized("Add your Devin organization after the token, separated by a space.")
-            case .apiKeyMissing: .localized("Add an API key in Settings.")
-            case .apiKeyRefused: .localized("That key was refused. Check it in Settings.")
-            case .unreachable: .localized("The service didn't respond.")
-            case .unreadableReply: .localized("Couldn't read the reply.")
+           case .apiKeyMissing: .localized("Add an API key in Settings.")
+           case .apiKeyRefused: .localized("That key was refused. Check it in Settings.")
+            case .customScriptMissing: .localized("Configure an executable script path in Settings.")
+            case .customScriptNotExecutable: .localized("The script is not executable. Run chmod +x on it.")
+            case .customScriptFailed: .localized("The custom script failed to execute.")
+           case .unreachable: .localized("The service didn't respond.")
+           case .unreadableReply: .localized("Couldn't read the reply.")
             case .rateLimited: .localized("Checking too often — easing off.")
             case .serverError: .localized("The service returned an error.")
             }

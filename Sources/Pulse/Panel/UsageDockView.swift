@@ -250,6 +250,8 @@ struct RailEntry: Identifiable, Equatable {
     var isRefreshing: Bool = false
     /// A colour chosen for this ring, or nil to colour it by usage.
     var tint: Color?
+    /// A built-in mark selected by a Custom script or its settings row.
+    var iconResource: String?
     /// Whether this ring draws the animated mark instead of the logo.
     var showsBotMark: Bool = false
     /// The persona chosen for this ring, or nil to let the rail deal one.
@@ -522,6 +524,7 @@ private struct UsageDockItem: View {
     private var ring: some View {
         UsageRingView(
             provider: usage.provider,
+            iconResource: entry.iconResource,
             usedFraction: headline?.usedFraction,
             // A ring showing money instead of a percentage has a reading; only
             // one showing an em dash does not.

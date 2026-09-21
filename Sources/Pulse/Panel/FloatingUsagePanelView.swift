@@ -270,6 +270,8 @@ struct FloatingUsagePanelView: View {
         let label = settings.label(for: account)
         let pinned = settings.pinnedWindow(for: account)
         let headline = usage.headlineWindow(preferring: pinned)
+        let showsSecondRing = settings.showsSecondRing
+            || (account.provider == .custom && settings.ringDisplay(for: account) == .allGroups)
 
         // The money, but only where there is a reading and deliberately no
         // window to draw — which today is DeepSeek on "balance only". An
@@ -294,6 +296,7 @@ struct FloatingUsagePanelView: View {
             isRunning: store.isRunning(account.provider),
             isRefreshing: store.isRefreshing(account),
             tint: settings.ringTint(for: account),
+            iconResource: headline?.iconResource ?? settings.customIconResource(for: account),
             showsBotMark: settings.showsBotMark(for: account),
             botPersona: settings.botPersona(for: account),
             botBody: settings.botBody(for: account),
@@ -311,7 +314,7 @@ struct FloatingUsagePanelView: View {
             // work it out — a reset time on its own is not enough.
             elapsed: settings.showsWindowClock ? headline?.elapsedFraction(at: minute) : nil,
             figure: figure,
-            second: settings.showsSecondRing ? usage.secondWindow(preferring: pinned) : nil,
+            second: showsSecondRing ? usage.secondWindow(preferring: pinned) : nil,
             showsRemaining: settings.showsRemaining
         )
     }

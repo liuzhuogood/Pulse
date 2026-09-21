@@ -100,7 +100,12 @@ struct RailSlot: Hashable, Identifiable, Sendable {
             // loss `modelGroups(of:)` refuses two lines below. One ring showing
             // the busiest of three is worse than two rings; it is not worse than
             // a limit nobody can see.
-            guard groups.count > 1, groups.count <= account.provider.modelGroupCount else {
+            // A Custom script declares its own provider groups, so there is no
+            // static upper bound. The panel is measured from the actual slot
+            // list after each reading. Built-in providers remain capped by
+            // their documented group count.
+            let limit = account.provider == .custom ? Int.max : account.provider.modelGroupCount
+            guard groups.count > 1, groups.count <= limit else {
                 return [RailSlot(account)]
             }
             return groups.map { RailSlot(account, group: $0) }
@@ -150,15 +155,15 @@ extension Provider {
     /// shown, however the rest of the app is shaped.
     var supportsMultipleAccounts: Bool {
         switch self {
-        // Grok Bot is signed in to through Cursor's own login page rather
-        // than by OAuth — a second allowance is a second Cursor account. See
-        // `CursorWebLogin`.
-        case .claudeCode, .codex, .grok, .grokBot: true
-        // **Cursor itself is not on this list, and that is not an oversight.**
-        // The same sign-in would work, but Cursor's usage summary is read
+       // Grok Bot is signed in to through Cursor's own login page rather
+       // than by OAuth — a second allowance is a second Cursor account. See
+       // `CursorWebLogin`.
+        case .claudeCode, .codex, .grok, .grokBot, .custom: true
+       // **Cursor itself is not on this list, and that is not an oversight.**
+       // The same sign-in would work, but Cursor's usage summary is read
         // from the editor's own stored login and a second account has no
         // editor behind it. Grok Bot needs nothing but the token.
-        case .antigravity, .cursor, .openCodeGo, .kimiCode, .ollamaCloud,
+       case .antigravity, .cursor, .openCodeGo, .kimiCode, .ollamaCloud,
              .zai, .glmCoding, .minimax, .minimaxCN, .copilot, .volcengine,
              .commandCode, .deepSeek, .devin, .xiaomiMiMo: false
         }

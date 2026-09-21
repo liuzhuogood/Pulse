@@ -611,3 +611,29 @@
 "Uses a browser session you import in Settings. Importing may ask for browser Keychain access." = "Uses a browser session you import in Settings. Importing may ask for browser Keychain access.";
 "Uses the GitHub login you connect in Settings. No Keychain prompt." = "Uses the GitHub login you connect in Settings. No Keychain prompt.";
 "Uses only the API key you enter in Settings. No Keychain prompt." = "Uses only the API key you enter in Settings. No Keychain prompt.";
+
+"Runs a local script you specify in Settings to fetch usage. No Keychain prompt." = "Runs a local script you specify in Settings to fetch usage. No Keychain prompt.";
+"Script path" = "Script path";
+"Path to an executable script returning usage JSON on stdout." = "Path to an executable script returning usage JSON on stdout.";
+"Test" = "Test";
+"Configure an executable script path in Settings." = "Configure an executable script path in Settings.";
+"The script is not executable. Run chmod +x on it." = "The script is not executable. Run chmod +x on it.";
+"The custom script failed to execute." = "The custom script failed to execute.";
+"Custom script" = "Custom script";
+
+
+"Add another provider" = "Add another provider";
+"Configure another custom script provider instance." = "Configure another custom script provider instance.";
+"Add…" = "Add…";
+"Provider name" = "Provider name";
+"What to call this provider on the rail." = "What to call this provider on the rail.";
+"Remove provider" = "Remove provider";
+"Removes this custom provider from Pulse." = "Removes this custom provider from Pulse.";
+"All groups" = "All groups";
+"Icon" = "Icon";
+"Default" = "Default";
+"Choose a built-in icon. A script-provided icon takes priority." = "Choose a built-in icon. A script-provided icon takes priority.";
+"Mouse passthrough" = "Mouse passthrough";
+"Clicks go to the app behind the floating panel." = "Clicks go to the app behind the floating panel.";
+"Opacity" = "Opacity";
+"How visible the floating panel is." = "How visible the floating panel is.";

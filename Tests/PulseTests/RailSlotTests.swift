@@ -215,4 +215,19 @@ struct RailSlotTests {
 
         #expect(slots.count == Provider.antigravity.modelGroupCount)
     }
+
+    @Test("A custom script can draw every group it returns")
+    func customScriptDrawsAllReturnedGroups() {
+        let custom = AccountKey(.custom)
+        let groups = ["first · Gem", "first · Cla", "second · Gem", "second · Cla"]
+
+        let slots = RailSlot.rail(
+            for: [custom],
+            isSplit: { $0 == custom },
+            groups: { _ in groups }
+        )
+
+        #expect(slots.map(\.group) == groups)
+        #expect(Set(slots.map(\.id)).count == 4)
+    }
 }

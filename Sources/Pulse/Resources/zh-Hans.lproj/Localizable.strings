@@ -611,3 +611,29 @@
 "Uses a browser session you import in Settings. Importing may ask for browser Keychain access." = "使用你在设置里导入的浏览器登录会话。导入时可能请求浏览器的钥匙串授权。";
 "Uses the GitHub login you connect in Settings. No Keychain prompt." = "使用你在设置里连接的 GitHub 登录。不弹钥匙串。";
 "Uses only the API key you enter in Settings. No Keychain prompt." = "只使用你在设置里填入的 API key。不弹钥匙串。";
+
+"Runs a local script you specify in Settings to fetch usage. No Keychain prompt." = "运行在“设置”中指定的本地脚本获取用量。无需访问钥匙串。";
+"Script path" = "脚本路径";
+"Path to an executable script returning usage JSON on stdout." = "向标准输出打印约定用量 JSON 的可执行脚本路径。";
+"Test" = "测试";
+"Configure an executable script path in Settings." = "请在“设置”中配置可执行脚本路径。";
+"The script is not executable. Run chmod +x on it." = "脚本不可执行，请为其添加执行权限（chmod +x）。";
+"The custom script failed to execute." = "自定义脚本执行失败。";
+"Custom script" = "自定义脚本";
+
+
+"Add another provider" = "添加另一个供应商";
+"Configure another custom script provider instance." = "配置另一个自定义脚本供应商实例。";
+"Add…" = "添加…";
+"Provider name" = "供应商名称";
+"What to call this provider on the rail." = "在监控轨道上显示的名称。";
+"Remove provider" = "移除供应商";
+"Removes this custom provider from Pulse." = "从 Pulse 中移除此自定义供应商。";
+"All groups" = "所有分组";
+"Icon" = "图标";
+"Default" = "默认";
+"Choose a built-in icon. A script-provided icon takes priority." = "选择内置图标。脚本指定的图标优先。";
+"Mouse passthrough" = "鼠标穿透";
+"Clicks go to the app behind the floating panel." = "点击会直接作用于悬浮面板后面的应用。";
+"Opacity" = "透明度";
+"How visible the floating panel is." = "调整悬浮面板的可见程度。";

@@ -142,12 +142,12 @@ enum OAuthLogin {
                     exchangeCarriesState: false,
                     deviceFlow: .standard(code: URL(string: "https://auth.x.ai/oauth2/device/code")!)
                 )
-            case .antigravity, .cursor, .openCodeGo, .kimiCode, .ollamaCloud,
-             .zai, .glmCoding, .minimax, .minimaxCN, .copilot, .grokBot, .volcengine,
-             .commandCode, .deepSeek, .devin, .xiaomiMiMo:
-                nil
-            }
-        }
+           case .antigravity, .cursor, .openCodeGo, .kimiCode, .ollamaCloud,
+            .zai, .glmCoding, .minimax, .minimaxCN, .copilot, .grokBot, .volcengine,
+             .commandCode, .deepSeek, .devin, .xiaomiMiMo, .custom:
+               nil
+           }
+       }
     }
 
     /// How long to hold the callback open. Long enough to find a password and
